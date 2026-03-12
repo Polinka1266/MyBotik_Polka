@@ -1,74 +1,117 @@
+import asyncio
 import random
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from aiogram import Bot, Dispatcher
+from aiogram.types import Message
+from aiogram.filters import Command, CommandStart
 
-TOKEN = "8691307767:AAFxev34srMY3m8DnNkYXyI4zsOwRFw5uEk"
+API_TOKEN = "8691307767:AAFxev34srMY3m8DnNkYXyI4zsOwRFw5uEk"
 
-songs = [
-    "Imagine Dragons – Believer",
-    "The Weeknd – Blinding Lights",
-    "Billie Eilish – Bad Guy",
-    "Ed Sheeran – Shape of You",
-    "Dua Lipa – Levitating"
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher()
+
+# список анекдотів
+jokes = [
+    "Програміст заходить у бар. Замовляє 1 пиво, 10 пива, 100 пива. Потім 0 пива. Потім -1 пиво. Бармен каже: тестування пройдено.",
+
+    "Викладач питає студента: чому ваша програма не працює? Студент: вона працює, просто результат не той, що ви очікували.",
+
+    "Системний адміністратор — це людина, яку кличуть коли щось не працює, і звинувачують коли все працює повільно.",
+
+    "— Чому програмісти плутають Хелловін і Різдво?\n— Бо OCT 31 = DEC 25.",
+
+    "Програміст каже лікарю: у мене проблема зі сном. Лікар: яка саме? Програміст: не можу закрити всі відкриті вкладки."
 ]
 
-keyboard = [
-    ["Випадкова пісня"],
-    ["Топ музика"],
-    ["Плейлист"]
-]
+# історія анекдотів
+history_text = """
+Анекдоти існують сотні років. Спочатку це були короткі дотепні історії,
+які передавались усно. У XIX–XX столітті анекдоти стали популярними
+в літературі, газетах та театральних виступах.
 
-markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+У Радянському Союзі анекдоти часто використовувались як спосіб
+сатири на політику і суспільство. Люди розповідали їх на кухнях,
+у компаніях друзів та колег.
+
+Сьогодні анекдоти поширюються через інтернет, соціальні мережі
+та відеоплатформи.
+"""
+
+# представники гумору
+comedians = """
+Відомі представники гумору:
+
+Аркадій Райкін — радянський актор і сатирик.
+Михайло Жванецький — письменник і майстер іронічної сатири.
+Роман Карцев — комедійний актор.
+Джим Керрі — актор комедійного жанру.
+"""
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Привіт. Я музичний бот. Обери кнопку:",
-        reply_markup=markup
+# /start
+@dp.message(CommandStart())
+async def start(message: Message):
+    await message.answer(
+        "Вітаю. Я бот про анекдоти.\n"
+        "Напишіть /help щоб побачити команди."
     )
 
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Команди бота:\n"
-        "/start — запуск бота\n"
-        "/help — список команд\n\n"
-        "Кнопки:\n"
-        "Випадкова пісня — отримати випадкову пісню\n"
-        "Топ музика — популярні пісні\n"
-        "Плейлист — рекомендації"
+# /help
+@dp.message(Command("help"))
+async def help_command(message: Message):
+    await message.answer(
+        "Команди:\n"
+        "/start — запуск\n"
+        "/help — список команд\n"
+        "/joke — випадковий анекдот\n"
+        "/history — історія анекдотів\n"
+        "/comedians — відомі гумористи\n"
+        "/bye — завершити"
     )
 
 
-async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.strip()
-
-    if text == "Випадкова пісня":
-        song = random.choice(songs)
-        await update.message.reply_text(f"Ось пісня:\n{song}")
-
-    elif text == "Топ музика":
-        await update.message.reply_text(
-            "Топ пісні:\n"
-            "1. The Weeknd – Blinding Lights\n"
-            "2. Dua Lipa – Levitating\n"
-            "3. Ed Sheeran – Shape of You"
-        )
-
-    elif text == "Плейлист":
-        await update.message.reply_text(
-            "Плейлист дня:\n"
-            "• Imagine Dragons – Believer\n"
-            "• Billie Eilish – Bad Guy\n"
-            "• The Weeknd – Starboy"
-        )
+# випадковий анекдот
+@dp.message(Command("joke"))
+async def joke_command(message: Message):
+    joke = random.choice(jokes)
+    await message.answer(joke)
 
 
-app = ApplicationBuilder().token(TOKEN).build()
+# історія
+@dp.message(Command("history"))
+async def history_command(message: Message):
+    await message.answer(history_text)
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("help", help_command))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
-print("Бот запущений")
-app.run_polling()
+# гумористи
+@dp.message(Command("comedians"))
+async def comedians_command(message: Message):
+    await message.answer(comedians)
+
+
+# /bye
+@dp.message(Command("bye"))
+async def bye_command(message: Message):
+    await message.answer("До побачення")
+
+
+# обробка тексту
+@dp.message()
+async def echo_text(message: Message):
+    text = message.text.lower()
+
+    if "анекдот" in text:
+        await message.answer(random.choice(jokes))
+    elif "історія" in text:
+        await message.answer(history_text)
+    else:
+        await message.answer("Я можу розповісти анекдот. Напишіть /joke")
+
+
+# запуск
+async def main():
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
